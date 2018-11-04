@@ -1,0 +1,12 @@
+### Ide ###
+.idea/
+.vscode/
+.project/
+.settings/
+
+### Node ###
+npm-debug.log*
+node_modules/
+
+### Typescript ###
+dist/
