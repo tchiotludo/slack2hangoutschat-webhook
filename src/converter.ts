@@ -25,7 +25,7 @@ export class Converter {
 
         if (!slack.attachments && slack.text) {
             message.setText(slack.text);
-        } else {
+        } else if (slack.attachments) {
             message.setPreviewText(slack.text);
 
             if (slack.username) {
@@ -38,6 +38,7 @@ export class Converter {
 
                 if (attachment.fallback) {
                     message.setFallbackText(message.getFallbackText() ? attachment.fallback + "\n" : attachment.fallback);
+                    message.setPreviewText(message.getFallbackText().trim());
                 }
 
                 if (attachment.pretext) {
@@ -89,6 +90,26 @@ export class Converter {
             );
     }
 
+    private static formatText(text: string): string {
+        const match = /^>>>([\s\S]*)/gm.exec(text);
+
+        if (match && match.length > 0) {
+            text = text.replace(match[0], match[1]
+                .trim()
+                .replace(/\n/g, "\n" + '<font color="#e3e4e6">┃</font> ')
+            );
+        }
+
+        return text
+            .replace(/\*(.+?)\*/g, "<b>$1</b>")
+            .replace(/_(.+?)_/g, "<i>$1</i>")
+            .replace(/~(.+?)~/g, "<strike>$1</strike>")
+            .replace(/```(.+?)```/g, "<font color=\"#424242\">$1</font>")
+            .replace(/^>(.+?)/gm, "<font color=\"#e3e4e6\">┃</font> $1")
+            .replace(/`(.+?)`/g, "<font color=\"#d72b3f\">$1</font>")
+            .trim();
+    }
+
     private static text(attachment: MessageAttachment): WidgetMarkup {
         let color: String;
 
@@ -109,10 +130,7 @@ export class Converter {
 
         return new WidgetMarkup()
             .setTextParagraph(new TextParagraph()
-                .setText(
-                    color +
-                    attachment.text.replace("\n", "<br>")
-                )
+                .setText(color + Converter.formatText(attachment.text))
             );
     }
 
