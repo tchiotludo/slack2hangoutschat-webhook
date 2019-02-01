@@ -80,16 +80,6 @@ export class Webhook {
     public static async azure(context: any, req: any) {
         const parsed = url.parse(req.url, true);
 
-        req.url = "http://localhost/" + req.query.space + req.url.substring(req.url.indexOf("?"));
-        req.params = req.query;
-
-        parsed.pathname = "/" + parsed.query.space;
-        delete parsed.query.space;
-        delete parsed.query.code;
-        delete parsed.search;
-        delete parsed.href;
-        delete parsed.path;
-
         try {
             const value: WebhookResponse = await Webhook.send(
                 <string> parsed.query.space,
@@ -121,6 +111,5 @@ export class Webhook {
                 };
             }
         }
-    };
-
+    }
 }
