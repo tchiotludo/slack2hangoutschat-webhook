@@ -9,6 +9,9 @@
 This project convert and forward all incoming Slack webhook to Hangouts chat.
 In an opinionated way, it expose a webserver to that will proxy Slack webhook to Google chat Api.
 
+## Online demo
+https://slack2hangouts-chat.now.sh/
+
 ## Installation
 
 ### Docker
@@ -32,6 +35,17 @@ npm run build && NODE_ENV="production" npm run start # build and start
 ```
 
 Go to http://localhost:3000 for instruction
+
+### Azure App
+
+* Create a Http Trigger
+* `npm install slack2hangoutschat-webhook`
+* update to index.js with this content
+```js
+const webhook = require('slack2hangoutschat-webhook/dist/webhook');
+module.exports = webhook.Webhook.azure
+```
+* Deploy to azure
 
 ## Api Usage
 ```bash

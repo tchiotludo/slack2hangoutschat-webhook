@@ -24,7 +24,6 @@ export class WebhookError {
     public body: string;
     public error: string;
 
-
     constructor(status: number, headers: any, body: string, error: string) {
         this.status = status;
         this.headers = headers;
@@ -34,14 +33,13 @@ export class WebhookError {
 }
 
 export class Webhook {
-    public static send(req: Request): Promise<any> {
+    public static send(space: string, key: string, token: string, body: string): Promise<any> {
         return new Promise((resolve, reject) => {
-            const parsed = url.parse(req.url, true);
-            const webhookUrl: string = "https://chat.googleapis.com/v1/spaces/" + req.params["space"]  + "/messages" + parsed.search;
+            const webhookUrl: string = "https://chat.googleapis.com/v1/spaces/" + space  + "/messages?key=" + key + "&token=" + token;
 
             superagent.post(webhookUrl)
                 .set("Content-Type", "application/json; charset=UTF-8")
-                .send(Converter.convert(req.body as IncomingWebhookSendArguments))
+                .send(Converter.convert(body as IncomingWebhookSendArguments))
                 .then((response: superagent.Response) => {
                     resolve(new WebhookResponse(
                         response.status,
@@ -61,12 +59,14 @@ export class Webhook {
     }
 
     public static express(req: Request, res: Response, next: NextFunction): void {
-        Webhook.send(req)
-            .then(value => res
+        const parsed: url.UrlWithParsedQuery = url.parse(req.url, true);
+
+        Webhook.send(req.params["space"], <string>parsed.query.key, <string>parsed.query.token, req.body)
+            .then((value: WebhookResponse) => res
                 .status(value.status)
                 .json(value)
             )
-            .catch(reason => {
+            .catch((reason: WebhookError) => {
                 if (!(reason instanceof WebhookError)) {
                     return next(reason);
                 }
@@ -76,4 +76,51 @@ export class Webhook {
                     .json(reason);
             });
     }
+
+    public static async azure(context: any, req: any) {
+        const parsed = url.parse(req.url, true);
+
+        req.url = "http://localhost/" + req.query.space + req.url.substring(req.url.indexOf("?"));
+        req.params = req.query;
+
+        parsed.pathname = "/" + parsed.query.space;
+        delete parsed.query.space;
+        delete parsed.query.code;
+        delete parsed.search;
+        delete parsed.href;
+        delete parsed.path;
+
+        try {
+            const value: WebhookResponse = await Webhook.send(
+                <string> parsed.query.space,
+                <string> parsed.query.key,
+                <string> parsed.query.token,
+                req.body
+            );
+
+            context.res = {
+                status: value.status,
+                headers: {
+                    "Content-Type": "application/json; charset=UTF-8"
+                },
+                body: value
+            };
+        } catch (reason) {
+            if (!(reason instanceof WebhookError)) {
+                context.res = {
+                    status: 500,
+                    body: reason.message
+                };
+            } else {
+                context.res = {
+                    status: reason.status,
+                    headers: {
+                        "Content-Type": "application/json; charset=UTF-8"
+                    },
+                    body: reason
+                };
+            }
+        }
+    };
+
 }
